@@ -26,7 +26,7 @@ export async function generateHooks(
   })
 
   if (!response.ok) {
-    throw new Error(`DeepSeek API error: ${response.status} ${response.statusText}`)
+    throw new Error(`DeepSeek API error: ${response.status}`)
   }
 
   const data = await response.json()
@@ -35,7 +35,7 @@ export async function generateHooks(
 
   const parsed = JSON.parse(content) as { hooks?: HookItem[] }
   if (!Array.isArray(parsed.hooks)) {
-    throw new Error('Invalid JSON structure: missing hooks array')
+    throw new Error('missing hooks array')
   }
 
   return parsed.hooks

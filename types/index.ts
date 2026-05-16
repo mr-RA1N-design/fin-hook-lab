@@ -27,3 +27,12 @@ export interface HistoryEntry {
   request: GenerateRequest
   hooks: HookItem[]
 }
+
+export interface FavoriteHookEntry {
+  id: string          // `${entryId}-${hookId}`
+  hookId: number
+  entryId: string
+  hook: HookItem
+  request: GenerateRequest
+  savedAt: string
+}

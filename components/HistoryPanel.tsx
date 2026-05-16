@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { HistoryEntry } from '@/types'
-import { getHistory, getFavorites } from '@/lib/storage'
+import { HistoryEntry, FavoriteHookEntry } from '@/types'
+import { getHistory, getHookFavorites } from '@/lib/storage'
 
 interface HistoryPanelProps {
   open: boolean
@@ -10,18 +10,16 @@ interface HistoryPanelProps {
 }
 
 export function HistoryPanel({ open, onClose, onRestore }: HistoryPanelProps) {
-  const [tab,       setTab]       = useState<'history' | 'favorites'>('history')
-  const [history,   setHistory]   = useState<HistoryEntry[]>([])
-  const [favorites, setFavorites] = useState<HistoryEntry[]>([])
+  const [tab,           setTab]           = useState<'history' | 'favorites'>('history')
+  const [history,       setHistory]       = useState<HistoryEntry[]>([])
+  const [hookFavorites, setHookFavorites] = useState<FavoriteHookEntry[]>([])
 
   useEffect(() => {
     if (open) {
       setHistory(getHistory())
-      setFavorites(getFavorites())
+      setHookFavorites(getHookFavorites())
     }
   }, [open])
-
-  const entries = tab === 'history' ? history : favorites
 
   const fmt = (iso: string) => {
     const d = new Date(iso)
@@ -58,30 +56,53 @@ export function HistoryPanel({ open, onClose, onRestore }: HistoryPanelProps) {
 
         {/* List */}
         <div className="flex-1 overflow-y-auto">
-          {entries.length === 0 ? (
-            <p className="text-center text-xs text-[#9ca3af] mt-12">
-              暂无{tab === 'history' ? '历史' : '收藏'}记录
-            </p>
+          {tab === 'history' ? (
+            history.length === 0 ? (
+              <p className="text-center text-xs text-[#9ca3af] mt-12">暂无历史记录</p>
+            ) : (
+              history.map(entry => (
+                <button
+                  key={entry.id}
+                  onClick={() => { onRestore(entry); onClose() }}
+                  className="w-full text-left px-5 py-3.5 border-b border-[#f0ede8] hover:bg-[#f8f7f4] transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-[#1a1a1a] truncate max-w-[180px]">{entry.request.topic}</span>
+                    <span className="text-xs text-[#9ca3af] flex-none ml-2">{fmt(entry.createdAt)}</span>
+                  </div>
+                  <div className="flex gap-1.5 mb-1.5">
+                    <span className="text-xs bg-[#f0ede8] text-[#6b7280] px-2 py-0.5 rounded">{entry.request.platform}</span>
+                    <span className="text-xs bg-[#f0ede8] text-[#6b7280] px-2 py-0.5 rounded">{entry.request.contentType}</span>
+                  </div>
+                  {entry.hooks.slice(0, 3).map(h => (
+                    <p key={h.id} className="text-xs text-[#9ca3af] truncate">{h.style}：{h.hook.slice(0, 28)}…</p>
+                  ))}
+                </button>
+              ))
+            )
           ) : (
-            entries.map(entry => (
-              <button
-                key={entry.id}
-                onClick={() => { onRestore(entry); onClose() }}
-                className="w-full text-left px-5 py-3.5 border-b border-[#f0ede8] hover:bg-[#f8f7f4] transition-colors"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-[#1a1a1a] truncate max-w-[180px]">{entry.request.topic}</span>
-                  <span className="text-xs text-[#9ca3af] flex-none ml-2">{fmt(entry.createdAt)}</span>
+            hookFavorites.length === 0 ? (
+              <p className="text-center text-xs text-[#9ca3af] mt-12">暂无收藏记录</p>
+            ) : (
+              hookFavorites.map(fav => (
+                <div key={fav.id} className="px-5 py-3.5 border-b border-[#f0ede8]">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className={`text-xs px-2 py-0.5 rounded font-medium bg-amber-100 text-amber-800`}>
+                      {fav.hook.style}
+                    </span>
+                    <span className="text-xs text-[#d4a843] font-bold">{fav.hook.score.toFixed(1)}</span>
+                  </div>
+                  <p className="text-xs text-[#1a1a1a] leading-relaxed mb-2">{fav.hook.hook}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-1.5">
+                      <span className="text-xs bg-[#f0ede8] text-[#6b7280] px-2 py-0.5 rounded">{fav.request.platform}</span>
+                      <span className="text-xs text-[#9ca3af]">{fav.request.topic.slice(0, 12)}{fav.request.topic.length > 12 ? '…' : ''}</span>
+                    </div>
+                    <span className="text-xs text-[#9ca3af]">{fmt(fav.savedAt)}</span>
+                  </div>
                 </div>
-                <div className="flex gap-1.5 mb-1.5">
-                  <span className="text-xs bg-[#f0ede8] text-[#6b7280] px-2 py-0.5 rounded">{entry.request.platform}</span>
-                  <span className="text-xs bg-[#f0ede8] text-[#6b7280] px-2 py-0.5 rounded">{entry.request.contentType}</span>
-                </div>
-                {entry.hooks.slice(0, 3).map(h => (
-                  <p key={h.id} className="text-xs text-[#9ca3af] truncate">{h.style}：{h.hook.slice(0, 28)}…</p>
-                ))}
-              </button>
-            ))
+              ))
+            )
           )}
         </div>
       </div>

@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react'
 import { HookItem, HistoryEntry } from '@/types'
 import { HookCard } from './HookCard'
-import { isFavorited as checkFavorited, toggleFavorite } from '@/lib/storage'
+import { getHookFavorites, toggleHookFavorite } from '@/lib/storage'
 
 interface HookGridProps {
   hooks: HookItem[]
@@ -10,15 +10,23 @@ interface HookGridProps {
 }
 
 export function HookGrid({ hooks, currentEntry }: HookGridProps) {
-  const [entryFavorited, setEntryFavorited] = useState(() => {
-    if (typeof window === 'undefined' || !currentEntry) return false
-    return checkFavorited(currentEntry.id)
+  const [favoritedIds, setFavoritedIds] = useState<Set<number>>(() => {
+    if (typeof window === 'undefined' || !currentEntry) return new Set()
+    const favs = getHookFavorites()
+    return new Set(
+      favs.filter(f => f.entryId === currentEntry.id).map(f => f.hookId)
+    )
   })
 
-  const handleFavorite = useCallback(() => {
+  const handleFavorite = useCallback((item: HookItem) => {
     if (!currentEntry) return
-    const isNowFav = toggleFavorite(currentEntry)
-    setEntryFavorited(isNowFav)
+    const isNowFav = toggleHookFavorite(item, currentEntry)
+    setFavoritedIds(prev => {
+      const next = new Set(prev)
+      if (isNowFav) next.add(item.id)
+      else next.delete(item.id)
+      return next
+    })
   }, [currentEntry])
 
   if (hooks.length === 0) return null
@@ -32,8 +40,8 @@ export function HookGrid({ hooks, currentEntry }: HookGridProps) {
             key={item.id}
             item={item}
             index={i}
-            isFavorited={entryFavorited}
-            onFavorite={handleFavorite}
+            isFavorited={favoritedIds.has(item.id)}
+            onFavorite={() => handleFavorite(item)}
           />
         ))}
       </div>
